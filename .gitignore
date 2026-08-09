@@ -1,0 +1,18 @@
+# NEVER commit these - they contain real API keys
+.env
+
+# Python cache
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Bot generated files (contain trade history & logs)
+trade_log.json
+bot.log
+*.log
+
+# Vercel local dev
+.vercel

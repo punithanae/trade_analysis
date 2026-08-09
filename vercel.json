@@ -1,0 +1,14 @@
+{
+  "crons": [
+    {
+      "path": "/api/trade",
+      "schedule": "*/5 * * * *"
+    }
+  ],
+  "functions": {
+    "api/trade.py": {
+      "runtime": "python3.12",
+      "maxDuration": 60
+    }
+  }
+}
