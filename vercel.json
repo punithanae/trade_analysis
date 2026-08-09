@@ -3,10 +3,6 @@
     {
       "path": "/api/trade",
       "schedule": "30 3 * * *"
-    },
-    {
-      "path": "/api/trade",
-      "schedule": "30 9 * * *"
     }
   ],
   "functions": {
