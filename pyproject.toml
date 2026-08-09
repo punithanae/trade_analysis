@@ -1,2 +1,17 @@
+[project]
+name = "crypto-trading-bot"
+version = "1.0.0"
+description = "AI-powered crypto trading bot using NVIDIA NIM + Mudrex"
+requires-python = ">=3.12"
+dependencies = [
+    "openai>=1.0.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "APScheduler>=3.10.4",
+    "rich>=13.7.0",
+    "pandas>=2.1.0",
+    "loguru>=0.7.2",
+]
+
 [tool.vercel]
 entrypoint = "api.trade:handler"
