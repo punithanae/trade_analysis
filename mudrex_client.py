@@ -36,7 +36,7 @@ def _make_request(method: str, endpoint: str, payload: dict = None, params: dict
                 headers=HEADERS,
                 json=payload,
                 params=params,
-                timeout=15,
+                timeout=4,
             )
             response.raise_for_status()
             data = response.json()

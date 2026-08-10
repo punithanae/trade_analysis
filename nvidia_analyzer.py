@@ -17,11 +17,7 @@ from config import (
     URGENCY_LEVELS_TO_TRADE,
 )
 
-# Initialize NVIDIA NIM client (OpenAI-compatible)
-_client = OpenAI(
-    base_url=NVIDIA_BASE_URL,
-    api_key=NVIDIA_API_KEY,
-)
+# NVIDIA NIM client instantiated lazily inside analyze_news()
 
 SYSTEM_PROMPT = """You are an elite quantitative crypto trading analyst with 15 years of experience.
 You analyze news and market sentiment to generate precise trading signals.
@@ -136,7 +132,11 @@ def analyze_news(articles: list[dict]) -> list[dict]:
     logger.info(f"[NVIDIA] Sending {len(articles)} articles to {NVIDIA_MODEL}...")
 
     try:
-        response = _client.chat.completions.create(
+        client = OpenAI(
+            base_url=NVIDIA_BASE_URL,
+            api_key=NVIDIA_API_KEY,
+        )
+        response = client.chat.completions.create(
             model=NVIDIA_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -144,6 +144,7 @@ def analyze_news(articles: list[dict]) -> list[dict]:
             ],
             max_tokens=NVIDIA_MAX_TOKENS,
             temperature=NVIDIA_TEMPERATURE,
+            timeout=8.0,
         )
 
         raw_response = response.choices[0].message.content
