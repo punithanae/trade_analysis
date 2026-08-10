@@ -46,8 +46,8 @@ def _make_request(method: str, endpoint: str, payload: dict = None, params: dict
         except requests.exceptions.HTTPError as e:
             status = e.response.status_code if e.response else None
             logger.error(f"[Mudrex] HTTP {status} on {method} {endpoint}: {e}")
-            if status in (400, 401, 403):
-                # Don't retry auth/bad request errors
+            if status in (400, 401, 403, 404):
+                # Don't retry 4xx errors
                 return None
             if attempt < MAX_RETRIES:
                 time.sleep(RETRY_DELAY * attempt)
