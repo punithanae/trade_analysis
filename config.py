@@ -73,8 +73,8 @@ MAX_DAILY_LOSS_PCT     = 5.0            # % of wallet — bot pauses if exceeded
 # ─────────────────────────────────────────────
 #  SIGNAL THRESHOLDS (LLM output filters)
 # ─────────────────────────────────────────────
-MIN_CONFIDENCE_TO_TRADE = 70            # Only trade if LLM confidence >= 70%
-URGENCY_LEVELS_TO_TRADE = ["HIGH", "MEDIUM"]
+MIN_CONFIDENCE_TO_TRADE = 55            # Actively capture opportunities with confidence >= 55%
+URGENCY_LEVELS_TO_TRADE = ["HIGH", "MEDIUM", "LOW"]
 
 # ─────────────────────────────────────────────
 #  SCHEDULER INTERVALS

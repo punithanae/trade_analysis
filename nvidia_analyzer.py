@@ -19,42 +19,39 @@ from config import (
 
 # NVIDIA NIM client instantiated lazily inside analyze_news()
 
-SYSTEM_PROMPT = """You are an elite quantitative crypto trading analyst with 15 years of experience.
-You analyze news and market sentiment to generate precise trading signals.
+SYSTEM_PROMPT = """You are an elite quantitative crypto trading analyst.
+You analyze crypto news, market trends, and sentiment to generate active, profitable trading decisions.
 
-Your analysis is always:
-1. Evidence-based (from the provided news only)
-2. Risk-aware (prefer HOLD when uncertain)
-3. Coin-specific (identify which exact coin is affected)
+Your goal is to evaluate the provided news and identify high-probability BUY or SELL trading opportunities for tracked coins.
+Be decisive: when market news or trending data shows positive momentum for a coin, generate a BUY signal. When negative, generate a SELL signal.
 
-You must respond ONLY with a JSON array — no explanation, no markdown, no extra text."""
+You must respond ONLY with a valid JSON array — no markdown, no extra text."""
 
-ANALYSIS_PROMPT_TEMPLATE = """Analyze the following {n} crypto news articles and for each coin that has clear trading implications, generate ONE trading signal.
+ANALYSIS_PROMPT_TEMPLATE = """Analyze the following {n} crypto news articles and market updates to generate trading signals for tracked coins.
 
 NEWS ARTICLES:
 {news_text}
 
 TRACKED COINS: {coins}
 
-For each coin with a clear signal, output a JSON object with EXACTLY these fields:
+For coins with clear sentiment, market momentum, or news catalysts, output a JSON object for each:
 {{
   "coin": "BTC" (must be one of the tracked coins above),
   "signal": "BUY" or "SELL" or "HOLD",
-  "confidence": 0-100 (integer, how confident you are),
+  "confidence": 55-100 (integer rating of trade probability),
   "urgency": "HIGH" or "MEDIUM" or "LOW",
-  "reasoning": "One clear sentence explaining why",
-  "news_basis": "Which headline(s) drove this signal"
+  "reasoning": "One concise sentence explaining the trade opportunity",
+  "news_basis": "Headline or trend driving this decision"
 }}
 
 Rules:
-- Only include coins where news is clearly bullish or bearish
-- BUY = strong positive catalyst (major partnerships, bullish regulation, big institutional buy)
-- SELL = strong negative catalyst (hack, ban, major sell-off, key person leaving, FUD confirmed)
-- HOLD = unclear or mixed signals
-- Confidence >= 70 means "act on this", < 70 means noise
-- If no coins have clear signals, return an empty array []
+- Actively evaluate the news for actionable trade setups.
+- BUY = positive sentiment, trending interest, ETF inflows, institutional adoption, bullish market news.
+- SELL = negative news, hacks, regulation pressure, ETF outflows, bearish market news.
+- Confidence >= 55 means a valid trading setup to execute.
+- Always aim to identify at least 1-2 top trading candidates if news/trending data is available.
 
-Respond with ONLY a valid JSON array of signal objects. Example: [{{"coin":"BTC","signal":"BUY","confidence":82,"urgency":"HIGH","reasoning":"...","news_basis":"..."}}]"""
+Respond with ONLY a valid JSON array of signal objects."""
 
 
 def _format_news_for_llm(articles: list[dict]) -> str:
