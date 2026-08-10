@@ -19,39 +19,40 @@ from config import (
 
 # NVIDIA NIM client instantiated lazily inside analyze_news()
 
-SYSTEM_PROMPT = """You are an elite quantitative crypto trading analyst.
-You analyze crypto news, market trends, and sentiment to generate active, profitable trading decisions.
+SYSTEM_PROMPT = """You are a world-class Quantitative Crypto Trading AI.
+You combine 24-hour price momentum and real-time news headlines to execute high-probability trading decisions.
 
-Your goal is to evaluate the provided news and identify high-probability BUY or SELL trading opportunities for tracked coins.
-Be decisive: when market news or trending data shows positive momentum for a coin, generate a BUY signal. When negative, generate a SELL signal.
+MANDATE:
+1. Evaluate both 24-hour price trends and news headlines for the tracked coins.
+2. Be active and decision-driven: select at least ONE strong BUY or SELL candidate on every cycle.
+3. If a coin has positive 24h momentum or bullish news, generate a BUY signal.
+4. If a coin has negative 24h momentum or bearish news, generate a SELL signal.
+5. Set confidence between 60% and 95%.
 
-You must respond ONLY with a valid JSON array — no markdown, no extra text."""
+Respond ONLY with a valid JSON array."""
 
-ANALYSIS_PROMPT_TEMPLATE = """Analyze the following {n} crypto news articles and market updates to generate trading signals for tracked coins.
+ANALYSIS_PROMPT_TEMPLATE = """Analyze the live 24-hour market price trends and latest news headlines below:
 
-NEWS ARTICLES:
+LIVE 24-HOUR MARKET TRENDS:
+{market_trends_text}
+
+LATEST NEWS HEADLINES:
 {news_text}
 
 TRACKED COINS: {coins}
 
-For coins with clear sentiment, market momentum, or news catalysts, output a JSON object for each:
+Select the #1 BEST BUY candidate and/or #1 BEST SELL candidate.
+Output a JSON array where each item has EXACTLY these fields:
 {{
   "coin": "BTC" (must be one of the tracked coins above),
-  "signal": "BUY" or "SELL" or "HOLD",
-  "confidence": 55-100 (integer rating of trade probability),
+  "signal": "BUY" or "SELL",
+  "confidence": 60-95 (integer rating),
   "urgency": "HIGH" or "MEDIUM" or "LOW",
-  "reasoning": "One concise sentence explaining the trade opportunity",
-  "news_basis": "Headline or trend driving this decision"
+  "reasoning": "Clear concise sentence combining price momentum and news sentiment",
+  "news_basis": "Key trend or headline driving this recommendation"
 }}
 
-Rules:
-- Actively evaluate the news for actionable trade setups.
-- BUY = positive sentiment, trending interest, ETF inflows, institutional adoption, bullish market news.
-- SELL = negative news, hacks, regulation pressure, ETF outflows, bearish market news.
-- Confidence >= 55 means a valid trading setup to execute.
-- Always aim to identify at least 1-2 top trading candidates if news/trending data is available.
-
-Respond with ONLY a valid JSON array of signal objects."""
+Respond with ONLY a valid JSON array."""
 
 
 def _format_news_for_llm(articles: list[dict]) -> str:
@@ -105,28 +106,35 @@ def _extract_json(text: str) -> list:
     return []
 
 
-def analyze_news(articles: list[dict]) -> list[dict]:
+def analyze_news(articles: list[dict], prices: dict = None) -> list[dict]:
     """
-    Send news to NVIDIA NIM LLM and get trade signals.
+    Send market trends + news to NVIDIA NIM LLM and get trade signals.
     Returns list of validated signal dicts.
     """
-    if not articles:
-        logger.info("[NVIDIA] No articles to analyze")
-        return []
-
     if not NVIDIA_API_KEY:
-        logger.error("[NVIDIA] No API key set — cannot analyze news")
+        logger.error("[NVIDIA] No API key set — cannot analyze market")
         return []
 
     tracked_coins = list(set(COIN_SYMBOLS.values()))
-    news_text = _format_news_for_llm(articles)
+    news_text = _format_news_for_llm(articles) if articles else "No urgent breaking news."
+
+    # Format live market trends
+    trends_lines = []
+    if prices:
+        for sym, info in prices.items():
+            chg = info.get("change_24h_pct", 0.0)
+            prc = info.get("price_inr", 0)
+            sign = "+" if chg >= 0 else ""
+            trends_lines.append(f"• {sym}/INR: ₹{prc:,.2f} (24h Change: {sign}{chg}%)")
+    market_trends_text = "\n".join(trends_lines) if trends_lines else "Market data unavailable."
+
     prompt = ANALYSIS_PROMPT_TEMPLATE.format(
-        n=len(articles),
+        market_trends_text=market_trends_text,
         news_text=news_text,
         coins=", ".join(tracked_coins),
     )
 
-    logger.info(f"[NVIDIA] Sending {len(articles)} articles to {NVIDIA_MODEL}...")
+    logger.info(f"[NVIDIA] Sending market trends + {len(articles)} articles to {NVIDIA_MODEL}...")
 
     try:
         client = OpenAI(

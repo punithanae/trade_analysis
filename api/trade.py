@@ -42,21 +42,19 @@ def run_trading_cycle() -> dict:
     }
 
     try:
-        # ── Step 1: Fetch News ──────────────────────────────────
-        log.info("Step 1: Fetching news...")
-        from news_fetcher import fetch_news
+        # ── Step 1: Fetch News & Live 24h Market Prices ───────────
+        log.info("Step 1: Fetching news & live 24h market trends...")
+        from news_fetcher import fetch_news, fetch_market_prices
         articles = fetch_news()
+        prices = fetch_market_prices()
         result["articles_fetched"] = len(articles)
-        log.info(f"Fetched {len(articles)} articles")
+        result["market_prices_scanned"] = len(prices)
+        log.info(f"Fetched {len(articles)} articles and {len(prices)} coin tickers")
 
-        if not articles:
-            result["status"] = "no_news"
-            return result
-
-        # ── Step 2: Analyze with NVIDIA NIM ────────────────────
-        log.info("Step 2: Analyzing with NVIDIA NIM...")
+        # ── Step 2: Analyze with NVIDIA NIM Quant AI ─────────────
+        log.info("Step 2: Analyzing with NVIDIA NIM Quant AI...")
         from nvidia_analyzer import analyze_news
-        signals = analyze_news(articles)
+        signals = analyze_news(articles, prices)
         result["signals_generated"] = len(signals)
         result["signals"] = [
             {

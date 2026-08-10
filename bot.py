@@ -32,7 +32,7 @@ from config import (
     MUDREX_API_SECRET,
     NVIDIA_API_KEY,
 )
-from news_fetcher import fetch_news
+from news_fetcher import fetch_news, fetch_market_prices
 from nvidia_analyzer import analyze_news
 from mudrex_client import get_wallet_balance, get_open_positions
 from risk_manager import RiskManager
@@ -146,21 +146,17 @@ def job_news_and_trade():
         logger.info(f"🔄 CYCLE #{dash_state.cycle_count} — {datetime.now(timezone.utc).strftime('%H:%M:%S UTC')}")
         logger.info(f"{'─'*50}")
 
-        # Step 1: Fetch News
-        logger.info("📰 Step 1: Fetching news...")
+        # Step 1: Fetch News & Market Prices
+        logger.info("📰 Step 1: Fetching news & live 24h market trends...")
         articles = fetch_news()
+        prices = fetch_market_prices()
         dash_state.last_news = articles
 
-        if not articles:
-            logger.warning("No news articles fetched — skipping analysis")
-            dash_state.bot_status = "RUNNING"
-            return
+        logger.info(f"✅ Fetched {len(articles)} articles and {len(prices)} market tickers")
 
-        logger.info(f"✅ Fetched {len(articles)} articles")
-
-        # Step 2: Analyze with NVIDIA NIM
+        # Step 2: Analyze with NVIDIA NIM Quant AI
         logger.info(f"🤖 Step 2: Sending to NVIDIA NIM ({config.NVIDIA_MODEL})...")
-        signals = analyze_news(articles)
+        signals = analyze_news(articles, prices)
         dash_state.last_signals = signals
 
         if not signals:

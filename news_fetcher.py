@@ -43,6 +43,36 @@ HEADERS = {
 # Strict 3-second timeout per HTTP request for high-speed parallel fetching
 HTTP_TIMEOUT = 3.5
 
+COINGECKO_MAP = {
+    "bitcoin": "BTC", "ethereum": "ETH", "solana": "SOL",
+    "binancecoin": "BNB", "ripple": "XRP", "cardano": "ADA",
+    "dogecoin": "DOGE", "avalanche-2": "AVAX", "matic-network": "MATIC",
+    "chainlink": "LINK"
+}
+
+
+def fetch_market_prices() -> dict:
+    """Fetch live INR prices and 24h % changes for tracked coins."""
+    prices = {}
+    try:
+        ids_str = ",".join(COINGECKO_MAP.keys())
+        url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids_str}&vs_currencies=inr&include_24hr_change=true"
+        resp = requests.get(url, headers=HEADERS, timeout=HTTP_TIMEOUT)
+        if resp.status_code == 200:
+            data = resp.json()
+            for cg_id, symbol in COINGECKO_MAP.items():
+                if cg_id in data:
+                    item = data[cg_id]
+                    price_inr = item.get("inr", 0)
+                    chg_24h = item.get("inr_24h_change", 0.0) or 0.0
+                    prices[symbol] = {
+                        "price_inr": price_inr,
+                        "change_24h_pct": round(chg_24h, 2)
+                    }
+    except Exception as e:
+        logger.warning(f"[PriceFetcher] Error: {e}")
+    return prices
+
 
 def _coins_in_text(text: str) -> list[str]:
     """Detect which tracked coins are mentioned in a text string."""
