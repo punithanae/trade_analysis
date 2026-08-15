@@ -55,6 +55,33 @@ def run_trading_cycle() -> dict:
         log.info("Step 2: Analyzing with NVIDIA NIM Quant AI...")
         from nvidia_analyzer import analyze_news
         signals = analyze_news(articles, prices)
+
+        # Fallback Quantitative Momentum Engine:
+        # If LLM generated 0 actionable signals, scan 24h price tickers for top momentum coin
+        if not any(s.get("actionable") for s in signals) and prices:
+            best_symbol = None
+            best_change = 0.0
+            best_side = "BUY"
+            for sym, info in prices.items():
+                chg = info.get("change_24h_pct", 0.0)
+                if abs(chg) >= abs(best_change):
+                    best_change = chg
+                    best_symbol = sym
+                    best_side = "BUY" if chg >= 0 else "SELL"
+
+            if best_symbol:
+                fallback_signal = {
+                    "coin": best_symbol,
+                    "signal": best_side,
+                    "confidence": 75,
+                    "urgency": "HIGH",
+                    "reasoning": f"Quant Momentum Trigger: {best_symbol} 24h price move is {best_change:+.2f}%",
+                    "news_basis": "Live 24h Price Momentum Scanner",
+                    "actionable": True,
+                }
+                signals.append(fallback_signal)
+                log.info(f"[QuantEngine] Created fallback momentum signal: {best_symbol} {best_side}")
+
         result["signals_generated"] = len(signals)
         result["signals"] = [
             {

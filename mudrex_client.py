@@ -64,6 +64,43 @@ def _make_request(method: str, endpoint: str, payload: dict = None, params: dict
 #  WALLET & ACCOUNT
 # ─────────────────────────────────────────────
 
+def _extract_balance_values(obj) -> tuple[float, float]:
+    """Recursively search any payload structure for available & total balance fields."""
+    avail, total = 0.0, 0.0
+    if isinstance(obj, dict):
+        for key in ["available_balance", "available", "available_funds", "free", "balance", "usable"]:
+            if key in obj and obj[key] is not None:
+                try:
+                    val = float(obj[key])
+                    if val > 0:
+                        avail = val
+                        break
+                except (ValueError, TypeError):
+                    pass
+        for key in ["total_balance", "total", "total_funds", "wallet_balance", "equity"]:
+            if key in obj and obj[key] is not None:
+                try:
+                    val = float(obj[key])
+                    if val > 0:
+                        total = val
+                        break
+                except (ValueError, TypeError):
+                    pass
+        if avail > 0:
+            return avail, total if total > 0 else avail
+        for v in obj.values():
+            if isinstance(v, (dict, list)):
+                sub_a, sub_t = _extract_balance_values(v)
+                if sub_a > 0:
+                    return sub_a, sub_t
+    elif isinstance(obj, list):
+        for item in obj:
+            sub_a, sub_t = _extract_balance_values(item)
+            if sub_a > 0:
+                return sub_a, sub_t
+    return avail, total
+
+
 def get_wallet_balance() -> dict:
     """
     Get INR/USDT futures wallet balance.
@@ -75,16 +112,16 @@ def get_wallet_balance() -> dict:
 
     data = _make_request("GET", "/wallet/funds", params=params)
     if not data:
+        # Fallback query without params if initial query returns empty
+        data = _make_request("GET", "/wallet/funds")
+    if not data:
         return {"available": 0.0, "total": 0.0, "currency": MUDREX_TRADE_CURRENCY}
 
-    # Parse Mudrex response structure
     try:
-        # Mudrex returns numeric values as strings
-        futures_data = data.get("futures", data)
-        available = float(futures_data.get("available_balance", 0))
-        total = float(futures_data.get("total_balance", available))
+        available, total = _extract_balance_values(data)
+        logger.info(f"[Mudrex] Balance extracted: available={available}, total={total}")
         return {"available": available, "total": total, "currency": MUDREX_TRADE_CURRENCY}
-    except (KeyError, ValueError, TypeError) as e:
+    except Exception as e:
         logger.error(f"[Mudrex] Failed to parse wallet balance: {e} | raw: {data}")
         return {"available": 0.0, "total": 0.0, "currency": MUDREX_TRADE_CURRENCY}
 

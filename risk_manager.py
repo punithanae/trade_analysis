@@ -112,15 +112,31 @@ class RiskManager:
 
         risk_amount = wallet_balance * (RISK_PER_TRADE_PCT / 100)
         position_value = risk_amount * LEVERAGE
+
+        # Enforce minimum position value of ₹200 to meet Mudrex exchange minimum order requirements
+        min_position_value = 200.0 if wallet_balance <= 5000 else 100.0
+        position_value = max(position_value, min_position_value)
+
+        # Cap position value at max 25% of account balance x leverage for safety
+        max_allowed_value = wallet_balance * 0.25 * LEVERAGE
+        position_value = min(position_value, max_allowed_value)
+
         quantity = position_value / entry_price
+
+        # Precision handling
+        if entry_price > 1000:
+            quantity = round(quantity, 6)
+        elif entry_price > 10:
+            quantity = round(quantity, 4)
+        else:
+            quantity = round(quantity, 2)
 
         logger.info(
             f"[RiskManager] {coin}: wallet={wallet_balance:.2f}, "
-            f"risk={risk_amount:.2f} ({RISK_PER_TRADE_PCT}%), "
             f"position_value={position_value:.2f}, "
-            f"quantity={quantity:.6f}"
+            f"quantity={quantity}"
         )
-        return round(quantity, 6)
+        return quantity
 
     def calculate_sl_tp(
         self,
